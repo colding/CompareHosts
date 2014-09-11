@@ -15,7 +15,14 @@ noinst_PROGRAMS = comparehosts
 
 comparehosts_LDFLAGS = -all-static
 
-comparehosts_SOURCES = main.c
+comparehosts_SOURCES = \
+	main.c \
+	ipc.c \
+	ipc.h \
+	net_interfaces.c \
+	net_interfaces.h \
+	network.c \
+	network.h
 
 comparehosts_LDADD = \
 	$(PROGRAM_top_dir)/cmdline/libcmdline.la

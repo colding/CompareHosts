@@ -12,7 +12,7 @@
 SUBDIRS = 
 
 noinst_LTLIBRARIES = libcmdline.la
-libcmdline_la_LDFLAGS = -static
+libcmdline_la_LDFLAGS = -all-static
 
 libcmdline_la_SOURCES = \
 	argopt.c \

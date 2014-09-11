@@ -1,0 +1,20 @@
+CompareHosts
+
+C implementation of a program comparing two hosts.
+
+Build by:
+
+      ./bootstrap 
+      make
+
+Then run the CompareHosts program in src/.
+
+
+OVERVIEW:
+
+
+
+TODO: 
+
+* Add unit tests.
+

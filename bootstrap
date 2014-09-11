@@ -51,7 +51,7 @@ srcdir=${srcdir:-.}
 (test -f $srcdir/configure.ac \
   && test -f $srcdir/Makefile.am \
   && test -f $srcdir/src/Makefile.am \
-  && test -f $srcdir/cmdline/Makefile.am || {
+  && test -f $srcdir/cmdline/Makefile.am) || {
     printerr "**Error**: Directory '$(pwd)' does not look like the top-level $PKG_NAME directory"
     printerr
     exit 1

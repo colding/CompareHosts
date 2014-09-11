@@ -73,6 +73,21 @@ AC_FUNC_STRERROR_R
 # Check implementation details of build host
 #
 
+# Check for indianess
+AC_C_BIGENDIAN(
+	[
+		AC_DEFINE([HAVE_BIG_ENDIAN], [1], [machine is big endian])
+		endianess="Big Endian"
+	],
+	[
+		AC_DEFINE([HAVE_LITTLE_ENDIAN], [1], [machine is little endian])
+		endianess="Little Endian"
+	],
+	[
+		AC_MSG_ERROR([unknown endianness])
+	]
+)
+
 # Check for (4 <= sizeof(int)) - Assumed in many places
 AC_MSG_CHECKING([for (4 <= sizeof(int))])
 AC_RUN_IFELSE(
@@ -269,8 +284,8 @@ echo "\
 	Target Platform:           $target
 	Endianess:                 $endianess
 	Making a debug build:      $msg_debug
-        $PROGRAM_NAME version:     $PACKAGE_VERSION
+        $PROGRAM_NAME version:      $PACKAGE_VERSION
 	PROGRAM_CFLAGS:            $PROGRAM_CFLAGS
 	PROGRAM_CPPFLAGS:          $PROGRAM_CPPFLAGS
-	$PROGRAM_NAME LIBS:        $LIBS
+	$PROGRAM_NAME LIBS:         $LIBS
 "

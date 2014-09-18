@@ -42,7 +42,6 @@
 #ifdef HAVE_CONFIG_H
     #include "ac_config.h"
 #endif
-#include "stdlib/network/net_types.h"
 
 /*
  * Will try to deduce the first assigned IP address on the specified
@@ -61,7 +60,7 @@ create_listening_socket(const char * const interface,
 			const uint16_t port,
 			const int pf_family,
 			const int socket_type,
-                        const bool keep_alive);
+                        const int keep_alive);
 
 /*
  * Will return a connected socket to host:port or (sock ==
@@ -72,4 +71,4 @@ connect_to_listening_socket(const char * const interface,
                             const uint16_t port,
                             const int pf_family,
                             const int socket_type,
-                            const timeout_t timeout);
+                            const time_t timeout);

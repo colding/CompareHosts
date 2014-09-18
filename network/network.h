@@ -47,11 +47,9 @@
 #endif
 
 #include <errno.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <sys/socket.h>
-#include "stdlib/log/log.h"
-#include "stdlib/process/cpu.h"
-#include "stdlib/network/net_types.h"
 
 /*
  * Will ensure that "len" bytes from "buf" is send over "socket".
@@ -70,7 +68,7 @@ send_all(int sock,
  */
 extern int
 set_recv_timeout(int sock,
-                 const timeout_t time_out);
+                 const time_t time_out);
 
 /*
  * Sets the send timeout value in seconds. Returns 1 (one) on success,
@@ -78,7 +76,7 @@ set_recv_timeout(int sock,
  */
 extern int
 set_send_timeout(int sock,
-                 const timeout_t time_out);
+                 const time_t time_out);
 
 /*
  * Sets the minimum recieve size in bytes. Returns 1 (one) on success,
@@ -87,31 +85,6 @@ set_send_timeout(int sock,
 extern int
 set_min_recv_sice(int sock,
                   const int ipc_header_size);
-
-/*
- * Will send a file descriptor over a local socket along with "len" of
- * data residing in "data".  Returns 0 (zero) if successful, 1 (one)
- * otherwise.
- */
-extern int
-send_fd(int fd,
-        void *data,
-        const uint32_t len,
-        int fd_to_send,
-        uint32_t * const bytes_sent);
-
-/*
- * Recieves a file descriptor over a local socket along with at most
- * "len" bytes of data residing in "buf". Returns 0 (zero) if
- * successful, 1 (one) otherwise.
- */
-extern int
-recv_fd(int fd,
-        void *buf,
-        const uint32_t len,
-        int *recvfd,
-        uint32_t * const bytes_recv);
-
 
 /*
  * Makes the socket non-blocking,

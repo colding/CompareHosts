@@ -46,14 +46,15 @@
 #include <ifaddrs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <netdb.h>
+#include <stdio.h>
 #ifdef __linux__
     #include <netinet/in.h>
     #include <netinet/tcp.h>
-    #include <string.h>
-    #include <stdlib.h>
 #endif
-#include "stdlib/log/log.h"
 #include "network.h"
 #include "net_interfaces.h"
 
@@ -137,25 +138,20 @@ set_socket_options(const int sock)
 
 #ifdef __APPLE__
         if (setsockopt(sock, SOL_SOCKET, SO_LINGER_SEC, &sl, sizeof(sl))) {
-                M_CRITICAL("could not setsockopt(SO_LINGER): %s", strerror(errno));
                 return 0;
         }
         if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &flag, sizeof(flag))) {
-                M_CRITICAL("could not setsockopt(SO_REUSEPORT): %s", strerror(errno));
                 return 0;
         }
 #elif defined __linux__
         if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &sl, sizeof(sl))) {
-                M_CRITICAL("could not setsockopt(SO_LINGER): %s", strerror(errno));
                 return 0;
         }
         if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag))) {
-                M_CRITICAL("could not setsockopt(TCP_NODELAY): %s", strerror(errno));
                 return 0;
         }
 #endif
         if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag))) {
-                M_CRITICAL("could not setsockopt(SO_REUSEADDR): %s", strerror(errno));
                 return 0;
         }
 
@@ -175,7 +171,6 @@ set_socket_options_low_volume(const int sock)
                 return 0;
 
         if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(flag))) { // SIG_PIPE!!
-                M_CRITICAL("could not setsockopt(SO_KEEPALIVE): %s", strerror(errno));
                 return 0;
         }
 
@@ -187,7 +182,7 @@ create_listening_socket(const char * const interface,
 			const uint16_t port,
 			const int pf_family,
 			const int socket_type,
-                        const bool keep_alive)
+                        const int keep_alive)
 {
         int tmp;
         int sock;
@@ -226,18 +221,15 @@ create_listening_socket(const char * const interface,
 
         sock = socket(pf_family, socket_type, 0);
         if (-1 == sock) {
-                M_ERROR("could not create socket");
                 return sock;
         }
 
         if (keep_alive) {
                 if (!set_socket_options_low_volume(sock)) {
-                        M_ERROR("could not set server socket options");
                         goto err;
                 }
         } else {
                 if (!set_socket_options(sock)) {
-                        M_ERROR("could not set command socket options");
                         goto err;
                 }
         }
@@ -245,12 +237,10 @@ create_listening_socket(const char * const interface,
         if (!strcmp("localhost", interface)) {
                 if (PF_INET == pf_family) {
                         if (1 != inet_pton(AF_INET, "127.0.0.1", &s4.sin_addr)) {
-                                M_ERROR("%s", strerror(errno));
                                 goto err;
                         }
                 } else {
                         if (1 != inet_pton(AF_INET6, "::1", &s6.sin6_addr)) {
-                                M_ERROR("%s", strerror(errno));
                                 goto err;
                         }
                 }
@@ -260,7 +250,6 @@ create_listening_socket(const char * const interface,
                         if (!tmp) {
                                 ip = get_ip_from_ifname(AF_INET, interface);
                                 if (!ip) {
-                                        M_ERROR("could not deduce IP address for %s", interface);
                                         goto err;
                                 }
                                 tmp = inet_pton(AF_INET, ip, &s4.sin_addr);
@@ -271,7 +260,6 @@ create_listening_socket(const char * const interface,
                         if (!tmp) {
                                 ip = get_ip_from_ifname(AF_INET6, interface);
                                 if (!ip) {
-                                        M_ERROR("could not deduce IP address for %s", interface);
                                         goto err;
                                 }
                                 tmp = inet_pton(AF_INET6, ip, &s6.sin6_addr);
@@ -282,20 +270,16 @@ create_listening_socket(const char * const interface,
                 case 1:
                         break;
                 case 0:
-                        M_CRITICAL("invalid interface: %s", interface);
                         goto err;
                 case -1:
                 default:
-                        M_CRITICAL("invalid interface: %s (%s)", interface, strerror(errno));
                         goto err;
                 }
         }
         if (bind(sock, listen_addr, addr_size)) {
-                M_ERROR("could not create endpoint %s:%d (%s)", interface, port, strerror(errno));
                 goto err;
         }
         if (listen(sock, SOMAXCONN)) {
-                M_ERROR("could not listen on socket (%s:%d): %s", interface, port, strerror(errno));
                 goto err;
         }
         goto out;
@@ -315,7 +299,7 @@ connect_to_listening_socket(const char * const interface,
 			    const uint16_t port,
 			    const int pf_family,
 			    const int socket_type,
-                            const timeout_t timeout)
+                            const time_t timeout)
 {
         int res;
         int sock;
@@ -323,7 +307,7 @@ connect_to_listening_socket(const char * const interface,
         struct addrinfo *ai;
         struct addrinfo *ai_current;
         char pstr[32] = { '\0' };
-        bool close_socket = true;
+        int close_socket = 1;
 
         sock = -1;
 
@@ -336,11 +320,9 @@ connect_to_listening_socket(const char * const interface,
         hint.ai_socktype = socket_type;
         hint.ai_protocol = IPPROTO_TCP;
 
-        M_DEBUG("connecting to %s:%u", interface, port);
         sprintf(pstr, "%u", port);
         res = getaddrinfo(interface, pstr, &hint, &ai);
         if (res) {
-                M_ERROR("could not get address info: %s", gai_strerror(res));
                 return sock;
         }
 
@@ -354,25 +336,23 @@ connect_to_listening_socket(const char * const interface,
                         continue;
 
                 if (!set_send_timeout(sock, timeout)) {
-                        M_ERROR("could not set timeout");
                         continue;
                 }
                 do {
                         if (!connect(sock, ai_current->ai_addr, ai_current->ai_addrlen)) {
-				close_socket = false;
+				close_socket = 0;
                                 goto done;
 			}
 
                         switch (errno) {
 			case EAGAIN:
                         case ETIMEDOUT:
-				M_WARNING("could not connect, timed out");
 				goto done;
                         default:
-                                M_ERROR("could not connect to socket: %s", strerror(errno));
+				;
                         }
                         break;
-                } while (true);
+                } while (1);
         }
 done:
         freeaddrinfo(ai);

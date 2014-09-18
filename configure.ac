@@ -274,8 +274,11 @@ dnl ******************************
 
 AC_CONFIG_FILES([
 	Makefile
-	src/Makefile
 	cmdline/Makefile
+	network/Makefile
+	marshal/Makefile
+	ipc/Makefile
+	src/Makefile
 	 ])
 AC_OUTPUT
 

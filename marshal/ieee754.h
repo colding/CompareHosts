@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2014 Jules Colding <jcolding@gmail.com>.
+ *    Copyright (C) 2013, Jules Colding <jcolding@gmail.com>.
  *
  *    All Rights Reserved.
  */
@@ -37,16 +37,21 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+#pragma once
 
-int
-main(int argc, char *argv[])
-{
-	if (argc) {
-		;
-	}
-	if (argv) {
-		;
-	}
-	return EXIT_SUCCESS;
-}
+#ifdef HAVE_CONFIG_H
+    #include "ac_config.h"
+#endif
+#include <inttypes.h>
+
+extern uint32_t
+pack754_32(float val);
+
+extern uint64_t
+pack754_64(double val);
+
+extern float
+unpack754_32(uint32_t val);
+
+extern double
+unpack754_64(uint64_t val);

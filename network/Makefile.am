@@ -1,5 +1,5 @@
 #  
-# Copyright (C) 2014 Jules Colding <jcolding@gmail.com>.
+# Copyright (C) 2013 by Jules Colding <jcolding@gmail.com>.
 #
 # All Rights Reserved.
 #
@@ -11,17 +11,13 @@
 
 SUBDIRS = 
 
-noinst_PROGRAMS = comparehosts
-
-comparehosts_LDFLAGS = -all-static
-
-comparehosts_SOURCES = \
-	main.c
-
-comparehosts_LDADD = \
-	$(PROGRAM_top_dir)/cmdline/libcmdline.la
-	$(PROGRAM_top_dir)/cmdline/libnetwork.la
-	$(PROGRAM_top_dir)/cmdline/libipc.la
+noinst_LTLIBRARIES = libnetwork.la
+libnetwork_la_LDFLAGS = -static
+libnetwork_la_SOURCES = \
+	network.c \
+	network.h \
+	net_interfaces.c \
+	net_interfaces.h
 
 AM_CPPFLAGS = $(PROGRAM_CPPFLAGS)
 AM_CFLAGS = $(PROGRAM_CFLAGS)
@@ -33,4 +29,4 @@ CLEAN_IN_FILES =
 endif
 
 DISTCLEANFILES = $(BUILT_SOURCES) $(CLEAN_IN_FILES) Makefile
-CLEANFILES = *~ 
+CLEANFILES = *~

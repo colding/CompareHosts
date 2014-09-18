@@ -47,9 +47,8 @@
     #include <stdarg.h>
 #endif
 #include <stdlib.h>
-#include "stdlib/marshal/primitives.h"
-#include "stdlib/network/net_types.h"
-#include "stdlib/network/network.h"
+#include "marshal/primitives.h"
+#include "network/network.h"
 #include "ipc_command.h"
 
 /*
@@ -98,7 +97,7 @@
  * buf in bytes and *count is the number of bytes received into buf,
  * including the return code.
  */
-extern bool
+extern int
 recv_result(int socket,
             const IPC_Command issuing_cmd,
             IPC_ReturnCode & result_code,
@@ -113,7 +112,7 @@ recv_result(int socket,
  * count is a pointer to an uint32_t which receives the total number
  * of received bytes.
  */
-extern bool
+extern int
 recv_cmd(int socket,
          void * const buf,
          const uint32_t buf_len,
@@ -192,29 +191,3 @@ ipcdata_free(ipcdata_t ipcdata)
         free(ipcdata);
 }
 
-/*
- * Will send a simple result code. Returns true if successful and
- * false if an error occurred.
- */
-static inline bool
-send_result(int sock,
-            const IPC_ReturnCode res)
-{
-	if (!res) {
-		M_ERROR("Illegal result code: %x", res);
-		return false;
-	}
-
-        //uint8_t buf[IPC_RESULT_SIZE] = { 0x00 };
-	uint32_t cnt = send_cmd(sock, CMD_RESULT, CMD_RESULT_FORMAT, res);
-	M_DEBUG("send RES_OK as %d bytes to master, wanted to send %d bytes", cnt, IPC_RESULT_SIZE);
-	return (IPC_RESULT_SIZE == cnt);
-
-        /* uint8_t *pos; */
-
-        /* ipcdata_set_header(CMD_RESULT, sizeof(uint32_t), (ipcdata_t)buf); */
-        /* pos = buf + IPC_HEADER_SIZE; */
-        /* setu32(pos, res); */
-
-        /* return send_all(sock, buf, IPC_RESULT_SIZE); */
-}

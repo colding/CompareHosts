@@ -41,12 +41,10 @@
     #include "ac_config.h"
 #endif
 #include <errno.h>
-#include "stdlib/log/log.h"
-#include "stdlib/macros/macros.h"
-#include "stdlib/marshal/marshal.h"
+#include "marshal/marshal.h"
 #include "ipc.h"
 
-bool
+int
 recv_result(int socket,
             const IPC_Command issuing_cmd,
             IPC_ReturnCode & return_code,
@@ -57,17 +55,15 @@ recv_result(int socket,
         IPC_Command cmd;
 
         if (!buf || !buf_len) {
-                M_WARNING("NULL buffers");
-                return false;
+                return 0;
         }
 
         if (command_is_oneway(issuing_cmd)) {
-                M_WARNING("no result from this command: %X", issuing_cmd);
-                return false;
+                return 0;
         }
 
         if (!recv_cmd(socket, buf, buf_len, count))
-                return false;
+                return 0;
 
 	/*
 	 * now parse the result
@@ -75,14 +71,11 @@ recv_result(int socket,
         cmd = ipcdata_get_cmd((ipcdata_t)buf);
         if (CMD_RESULT == cmd) {
                 return_code = ipcdata_get_return_code((ipcdata_t)buf);
-                if (sizeof(uint32_t) != ipcdata_get_datalen((ipcdata_t)buf))
-                        M_DEBUG("received complex result data");
         } else {
-                M_DEBUG("expected result but got command %X", cmd);
-                return false;
+                return 0;
         }
 
-        return true;
+        return 1;
 }
 
 
@@ -100,8 +93,7 @@ recv_cmd(int socket,
         ssize_t recv_cnt = 0;
 
         if (!buf || !buf_len) {
-                M_WARNING("NULL buffer");
-                return false;
+                return 0;
         }
 
 	/*
@@ -109,19 +101,16 @@ recv_cmd(int socket,
 	 */
         t.seconds = 0;
         if (!set_recv_timeout(socket, t)) {
-                M_WARNING("could not set timeout");
-                return false;
+                return 0;
         }
 
         do {
                 recv_cnt = recvfrom(socket, (void*)((uint8_t*)pos + recv_cnt_acc), buf_len - recv_cnt_acc, MSG_WAITALL, NULL, NULL);
                 switch (recv_cnt) {
                 case -1:
-                        M_WARNING("error: %s", strerror(errno));
-                        return false;
+                        return 0;
                 case 0:
-                        M_WARNING("peer disconnected");
-                        return false;
+                        return 0;
                 default:
 			/*
 			 * Now we set a timeout of 5 seconds. Continue
@@ -133,8 +122,7 @@ recv_cmd(int socket,
                         if UNLIKELY(!recv_cnt_acc) {
                                 t.seconds = 60;
                                 if (!set_recv_timeout(socket, t)) {
-                                        M_WARNING("could not set timeout");
-                                        return false;
+                                        return 0;
                                 }
                         }
                         break;
@@ -142,24 +130,21 @@ recv_cmd(int socket,
                 recv_cnt_acc += recv_cnt;
                 if ((ssize_t)IPC_HEADER_SIZE <= recv_cnt_acc)
                         break;
-        } while (true);
+        } while (1);
 
         // infer command length and get the rest
         rem = ipcdata_get_datalen(pos);
         packet_size = rem + IPC_HEADER_SIZE;
         if (buf_len < packet_size) {
-                M_WARNING("buffer too small. Required %d, available %d", packet_size, buf_len);
-                return false;
+                return 0;
         }
         while UNLIKELY(recv_cnt_acc < packet_size) {
                 recv_cnt = recvfrom(socket, (void*)((uint8_t*)pos + recv_cnt_acc), buf_len - recv_cnt_acc, MSG_WAITALL, NULL, NULL);
                 switch (recv_cnt) {
                 case -1:
-                        M_WARNING("error: %s", strerror(errno));
-                        return false;
+                        return 0;
                 case 0:
-                        M_WARNING("peer disconnected");
-                        return false;
+                        return 0;
                 default:
                         break;
                 }
@@ -167,7 +152,7 @@ recv_cmd(int socket,
         }
         *count = recv_cnt_acc;
 
-        return true;
+        return 1;
 }
 
 uint32_t
@@ -199,7 +184,6 @@ vsend_cmd(int socket,
         va_list ap2;
 
         if (!cmd) {
-                M_ERROR("Illegal comand: %x", cmd);
                 return 0;
         }
 
@@ -218,13 +202,11 @@ vsend_cmd(int socket,
         if (len) {
                 pos = buf + IPC_HEADER_SIZE;
                 if (!vmarshal(pos, len, &len, format, ap)) {
-                        M_ERROR("could not vmarshal");
                         goto error;
                 }
         }
         len += IPC_HEADER_SIZE;
         if (!send_all(socket, buf, len)) {
-                M_ERROR("could not send_all");
                 goto error;
         }
         goto exit;

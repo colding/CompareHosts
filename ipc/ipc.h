@@ -95,9 +95,9 @@
  */
 extern int
 recv_result(int socket,
+            const size_t buflen,
             void * const buf,
-            const uint32_t buf_len,
-	    uint32_t *count,
+	    size_t *count,
 	    time_t timeout);
 
 /*

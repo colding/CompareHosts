@@ -49,6 +49,26 @@
 #include "ipc/ipc.h"
 
 /*
+ * FIXME
+ */
+static int
+parse_reply(const size_t buflen,
+	    char *buf, 
+	    uint64_t *timestamp)
+{
+	return 1;
+}
+
+/*
+ * FIXME
+ */
+static int
+compose_request(char buf[IPC_BUFFER_SIZE])
+{
+	return 1;
+}
+
+/*
  * HOST:PORT
  */
 static int
@@ -84,6 +104,28 @@ split_address(char * const addr,
 	return 1;
 }
 
+static int
+get_latest_update(const int timeout, int socket, uint64_t *timestamp)
+{
+	char buf[IPC_BUFFER_SIZE] = { '\0' };
+	if (!compose_request(buf)) {
+		fprintf(stdout, "Could not compose request\n");
+		return 0;
+	}
+		
+	if (!send_cmd(socket, "%s", buf)) {
+		fprintf(stdout, "Could not send request\n");
+		return 0;
+	}
+
+	size_t count;
+	if (!recv_result(socket, sizeof(buf), buf, &count, timeout)) {
+		fprintf(stdout, "Could not get reply\n");
+		return 0;
+	}
+
+	return parse_reply(count, buf, timestamp);
+}
 
 int main(int argc, char **argv)
 {
@@ -183,13 +225,15 @@ opt_done:
 		exit(EXIT_FAILURE);
 	}
 
+	/*
+	 * Parse hostnames
+	 */
 	unsigned int left_port;
 	char *left_hostname = NULL;
 	if (!split_address(left_host, &left_hostname, &left_port)) {
 		fprintf(stdout, "Left hostname incorrectly formatted\n");
 		exit(EXIT_FAILURE);
 	}
-
 	unsigned int right_port;
 	char *right_hostname = NULL;
 	if (!split_address(right_host, &right_hostname, &right_port)) {
@@ -197,31 +241,41 @@ opt_done:
 		exit(EXIT_FAILURE);
 	}
 
+	/*
+	 * Get update time from left host
+	 */
 	int left_socket;
 	left_socket = connect_to_listening_socket(left_hostname, left_port, PF_INET, SOCK_STREAM, 30);
 	if (-1 == left_socket) {
 		fprintf(stdout, "Could not connect to left host\n");
 		exit(EXIT_FAILURE);
 	}
+	uint64_t left_time;
+	if (!get_latest_update(timeout, left_socket, &left_time)) {
+		fprintf(stdout, "Could not get latest timestamp from left host\n");
+		exit(EXIT_FAILURE);
+	}
 
+	/*
+	 * Get update time from right host
+	 */
 	int right_socket;
 	right_socket = connect_to_listening_socket(right_hostname, right_port, PF_INET, SOCK_STREAM, 30);
 	if (-1 == right_socket) {
 		fprintf(stdout, "Could not connect to right host\n");
 		exit(EXIT_FAILURE);
 	}
-
-	if (!send_cmd(left_socket, "%s", "GET_LAST_UPDATE_UTC")) {
-		fprintf(stdout, "Could not send request to left host\n");
+	uint64_t right_time;
+	if (!get_latest_update(timeout, right_socket, &right_time)) {
+		fprintf(stdout, "Could not get latest timestamp from right host\n");
 		exit(EXIT_FAILURE);
 	}
 
-	uint32_t count;
-	char buf[1024] = { '\0' };
-	if (!recv_result(left_socket, buf, sizeof(buf), &count, timeout)) {
-		fprintf(stdout, "Could not get reply from to righthost\n");
+	/*
+	 * Compare the hosts
+	 */
+	if (tolerance < (left_time - right_time))
 		exit(EXIT_FAILURE);
-	}
 
 	exit(EXIT_SUCCESS);
 }

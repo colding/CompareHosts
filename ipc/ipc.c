@@ -56,9 +56,9 @@
 
 int
 recv_result(int socket,
+            const size_t buflen,
             void * const buf,
-            const uint32_t buf_len,
-            uint32_t *count,
+            size_t *count,
 	    time_t timeout)
 {
         ipcdata_t pos = buf;
@@ -67,7 +67,7 @@ recv_result(int socket,
         ssize_t recv_cnt_acc = 0; // accumulated receive count
         ssize_t recv_cnt = 0;
 
-        if (!buf || !buf_len) {
+        if (!buf || !buflen) {
                 fprintf(stdout, "NULL buffer");
                 return 0;
         }
@@ -78,7 +78,7 @@ recv_result(int socket,
         }
 
         do {
-                recv_cnt = recvfrom(socket, (void*)((uint8_t*)pos + recv_cnt_acc), buf_len - recv_cnt_acc, MSG_WAITALL, NULL, NULL);
+                recv_cnt = recvfrom(socket, (void*)((uint8_t*)pos + recv_cnt_acc), buflen - recv_cnt_acc, MSG_WAITALL, NULL, NULL);
                 switch (recv_cnt) {
                 case -1:
                         fprintf(stdout, "error: %s", strerror(errno));
@@ -110,12 +110,12 @@ recv_result(int socket,
         // infer command length and get the rest
         rem = ipcdata_get_datalen(pos);
         packet_size = rem + IPC_HEADER_SIZE;
-        if (buf_len < packet_size) {
-                fprintf(stdout, "buffer too small. Required %d, available %d", packet_size, buf_len);
+        if (buflen < packet_size) {
+                fprintf(stdout, "buffer too small. Required %d, available %d", packet_size, buflen);
                 return 0;
         }
         while UNLIKELY(recv_cnt_acc < packet_size) {
-                recv_cnt = recvfrom(socket, (void*)((uint8_t*)pos + recv_cnt_acc), buf_len - recv_cnt_acc, MSG_WAITALL, NULL, NULL);
+                recv_cnt = recvfrom(socket, (void*)((uint8_t*)pos + recv_cnt_acc), buflen - recv_cnt_acc, MSG_WAITALL, NULL, NULL);
                 switch (recv_cnt) {
                 case -1:
                         fprintf(stdout, "error: %s", strerror(errno));

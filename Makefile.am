@@ -15,9 +15,9 @@ TAR=/bin/tar
 
 SUBDIRS = \
 	cmdline  \
-	network \
+	network  \
+	ipc      \
 	marshal  \
-	ipc  \
 	src
 
 ACLOCAL_AMFLAGS = -I m4

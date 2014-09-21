@@ -31,3 +31,13 @@ src/Makefile
 src/Makefile.in
 stamp-h1
 *.o
+*.lo
+*.la
+cmdline/.libs/
+ipc/.deps/
+ipc/.libs/
+marshal/.deps/
+marshal/.libs/
+network/.deps/
+network/.libs/
+src/comparehosts

@@ -47,9 +47,6 @@
     #include <stdarg.h>
 #endif
 #include <stdlib.h>
-#include "marshal/primitives.h"
-#include "network/network.h"
-#include "ipc_command.h"
 
 /*
  * Functions to manipulate the generic Mercury data structure which is
@@ -83,7 +80,6 @@
  * typedef, but then we would loose const flexibility.
  */
 #define ipcdata_t void*
-
 #define IPC_DATALENGTH_OFFSET (sizeof(uint32_t))     // offset of LENGTH
 #define IPC_RETURN_VALUE_OFFSET (2*sizeof(uint32_t)) // offset of IPC_ReturnValue
 #define IPC_RETURN_DATA_OFFSET (3*sizeof(uint32_t))  // data following IPC_ReturnValue
@@ -99,24 +95,9 @@
  */
 extern int
 recv_result(int socket,
-            const IPC_Command issuing_cmd,
-            IPC_ReturnCode & result_code,
             void * const buf,
             const uint32_t buf_len,
 	    uint32_t *count);
-
-/*
- * Will receive incomming comamnd data stream. Return true if
- * successful and false if an error occurred. 
- *
- * count is a pointer to an uint32_t which receives the total number
- * of received bytes.
- */
-extern int
-recv_cmd(int socket,
-         void * const buf,
-         const uint32_t buf_len,
-         uint32_t *count);
 
 /*
  * Will ensure that the command "cmd" is send over "sock".
@@ -126,53 +107,20 @@ recv_cmd(int socket,
  */
 extern uint32_t
 vsend_cmd(int sock,
-          IPC_Command cmd,
           const char * const format,
           va_list ap);
 
 extern uint32_t
 send_cmd(int sock,
-         IPC_Command cmd,
          const char * const format,
          ...);
-
-static inline IPC_Command
-ipcdata_get_cmd(const ipcdata_t const ipcdata)
-{
-        return (IPC_Command)getu32((uint8_t*)ipcdata);
-}
-
-static inline IPC_ReturnCode
-ipcdata_get_return_code(const ipcdata_t const ipcdata)
-{
-        return (IPC_ReturnCode)getu32((uint8_t*)ipcdata + IPC_RETURN_VALUE_OFFSET);
-}
 
 static inline uint32_t
 ipcdata_get_datalen(const ipcdata_t const ipcdata)
 {
-        return getu32((uint8_t*)ipcdata + IPC_DATALENGTH_OFFSET);
-}
-
-static inline const uint8_t*
-ipcdata_get_data(const ipcdata_t const ipcdata)
-{
-        return (uint8_t*)((uint8_t*)ipcdata + IPC_HEADER_SIZE);
-}
-
-static inline ipcdata_t
-ipcdata_get_data_offset(const ipcdata_t const ipcdata)
-{
-        return (ipcdata_t*)((uint8_t*)ipcdata + IPC_HEADER_SIZE);
-}
-
-static inline void
-ipcdata_set_header(const IPC_Command cmd,
-                   const uint32_t datalen,
-                   ipcdata_t const ipcdata)
-{
-        setu32((uint8_t*)ipcdata, (uint32_t)cmd);
-        setu32(((uint8_t*)ipcdata + IPC_DATALENGTH_OFFSET), datalen);
+	if (ipcdata)
+		return 1;
+	return 0;
 }
 
 /*

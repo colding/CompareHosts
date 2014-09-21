@@ -88,8 +88,8 @@
 #define IPC_BUFFER_SIZE (8*1024) // constant size of receiving data buffer
 
 /*
- * Will receive an IPC result code and data. Returns true if
- * successful and false if any error occurred. buf_len is the size of
+ * Will receive an IPC result code and data. Returns true (1) if
+ * successful and false (0) if any error occurred. buf_len is the size of
  * buf in bytes and *count is the number of bytes received into buf,
  * including the return code.
  */
@@ -97,7 +97,8 @@ extern int
 recv_result(int socket,
             void * const buf,
             const uint32_t buf_len,
-	    uint32_t *count);
+	    uint32_t *count,
+	    time_t timeout);
 
 /*
  * Will ensure that the command "cmd" is send over "sock".

@@ -39,10 +39,51 @@
 
 #include <errno.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include "cmdline/argopt.h"
+#include "network/net_interfaces.h"
+#include "ipc/ipc.h"
+
+/*
+ * HOST:PORT
+ */
+static int
+split_address(char * const addr,
+	      char **hostname,
+	      unsigned int *port)
+{
+	if (!port || !addr)
+		return 0;
+	*hostname = addr;
+
+	char *tmp = *hostname;
+	while (*tmp && (':' != *tmp))
+		++tmp;
+
+	if (!*tmp)
+		return 0;
+
+	*tmp = '\0';
+	++tmp;
+
+	if (!*tmp)
+		return 0;
+
+	char *endptr = NULL;
+	*port = strtol(tmp, &endptr, 10);
+	if (!*port || *endptr != '\0')
+		return 0;
+
+	if (UINT16_MAX < *port)
+		return 0;
+
+	return 1;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -50,7 +91,8 @@ int main(int argc, char **argv)
 	int index = 0;
 
 	/* options */
-	int tolerance;
+	int timeout = 0;
+	int tolerance = 0;
 	char *left_host = NULL;
 	char *right_host = NULL;
 
@@ -61,6 +103,7 @@ int main(int argc, char **argv)
 		{"left_host", "-left_host <PARAMETER> Left host name in name:port format", NEED_PARAM, NULL, 'l'},
 		{"right_host", "-right_host <PARAMETER> Right host name in name:port format", NEED_PARAM, NULL, 'r'},
 		{"tolerance", "-tolerance <PARAMETER> Maximum tolarable difference for equality. Must be an integer.", NEED_PARAM, NULL, 't'},
+		{"timeout", "-timeout <PARAMETER> Send and recieve timeout. Must be an integer.", NEED_PARAM, NULL, 'w'},
 		{0, 0, (enum need_param_t)0, 0, 0}
 	};
 
@@ -116,6 +159,14 @@ int main(int argc, char **argv)
 			}
 			fprintf(stdout, "Tolerance parameter is:\t\"%s\"\n", parameter);
 			break;
+		case 'w' :
+			timeout = strtol(parameter, &endptr, 10);
+			if (*endptr != '\0') {
+				fprintf(stdout, "Timeout parameter is not valid:\t%s\n", parameter);
+				exit(EXIT_FAILURE);
+			}
+			fprintf(stdout, "Timeout parameter is:\t\"%s\"\n", parameter);
+			break;
 		default:
 			printf ("?? get_option() returned character code 0%o ??\n", c);
 		}
@@ -124,11 +175,51 @@ int main(int argc, char **argv)
 	}
 opt_done:
 	if ((index) && (index < argc)) {
-		printf ("non-option ARGV-elements: ");
+		fprintf(stdout, "non-option ARGV-elements: ");
 		while (index < argc)
-			printf("%s ", argv[index++]);
-		printf ("\n");
+			fprintf(stdout, "%s ", argv[index++]);
+		fprintf(stdout, "\n");
 
+		exit(EXIT_FAILURE);
+	}
+
+	unsigned int left_port;
+	char *left_hostname = NULL;
+	if (!split_address(left_host, &left_hostname, &left_port)) {
+		fprintf(stdout, "Left hostname incorrectly formatted\n");
+		exit(EXIT_FAILURE);
+	}
+
+	unsigned int right_port;
+	char *right_hostname = NULL;
+	if (!split_address(right_host, &right_hostname, &right_port)) {
+		fprintf(stdout, "Right hostname incorrectly formatted\n");
+		exit(EXIT_FAILURE);
+	}
+
+	int left_socket;
+	left_socket = connect_to_listening_socket(left_hostname, left_port, PF_INET, SOCK_STREAM, 30);
+	if (-1 == left_socket) {
+		fprintf(stdout, "Could not connect to left host\n");
+		exit(EXIT_FAILURE);
+	}
+
+	int right_socket;
+	right_socket = connect_to_listening_socket(right_hostname, right_port, PF_INET, SOCK_STREAM, 30);
+	if (-1 == right_socket) {
+		fprintf(stdout, "Could not connect to right host\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (!send_cmd(left_socket, "%s", "GET_LAST_UPDATE_UTC")) {
+		fprintf(stdout, "Could not send request to left host\n");
+		exit(EXIT_FAILURE);
+	}
+
+	uint32_t count;
+	char buf[1024] = { '\0' };
+	if (!recv_result(left_socket, buf, sizeof(buf), &count, timeout)) {
+		fprintf(stdout, "Could not get reply from to righthost\n");
 		exit(EXIT_FAILURE);
 	}
 

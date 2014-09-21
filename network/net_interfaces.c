@@ -361,5 +361,4 @@ done:
 		sock = -1;
 	}
         return sock;
-
 }

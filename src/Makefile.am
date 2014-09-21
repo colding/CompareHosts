@@ -19,9 +19,10 @@ comparehosts_SOURCES = \
 	main.c
 
 comparehosts_LDADD = \
-	$(PROGRAM_top_dir)/cmdline/libcmdline.la
-	$(PROGRAM_top_dir)/cmdline/libnetwork.la
-	$(PROGRAM_top_dir)/cmdline/libipc.la
+	$(PROGRAM_top_dir)/cmdline/libcmdline.la \
+	$(PROGRAM_top_dir)/network/libnetwork.la \
+	$(PROGRAM_top_dir)/marshal/libmarshal.la \
+	$(PROGRAM_top_dir)/ipc/libipc.la
 
 AM_CPPFLAGS = $(PROGRAM_CPPFLAGS)
 AM_CFLAGS = $(PROGRAM_CFLAGS)

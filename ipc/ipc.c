@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "network/network.h"
 #include "marshal/marshal.h"
 #include "ipc.h"
@@ -53,6 +54,17 @@
  */
 #define LIKELY(expr__) (__builtin_expect(((expr__) ? 1 : 0), 1))
 #define UNLIKELY(expr__) (__builtin_expect(((expr__) ? 1 : 0), 0))
+
+/*
+ * FIXME
+ */
+static inline uint32_t
+ipcdata_get_datalen(const ipcdata_t const ipcdata)
+{
+	if (ipcdata)
+		return 1;
+	return 0;
+}
 
 int
 recv_result(int socket,

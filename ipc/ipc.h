@@ -116,27 +116,4 @@ send_cmd(int sock,
          const char * const format,
          ...);
 
-static inline uint32_t
-ipcdata_get_datalen(const ipcdata_t const ipcdata)
-{
-	if (ipcdata)
-		return 1;
-	return 0;
-}
-
-/*
- * Returns a chunk of memory sufficiently large to hold data of length
- * "datalen" as well as the IPC header which is two uint32_t.
- */
-static inline ipcdata_t
-ipcdata_alloc(const size_t datalen)
-{
-        return (ipcdata_t)malloc(datalen + IPC_HEADER_SIZE);
-}
-
-static inline void
-ipcdata_free(ipcdata_t ipcdata)
-{
-        free(ipcdata);
-}
 

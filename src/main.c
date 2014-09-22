@@ -274,7 +274,7 @@ opt_done:
 	/*
 	 * Compare the hosts
 	 */
-	if (tolerance < (left_time - right_time))
+	if (tolerance < (int)(left_time - right_time))
 		exit(EXIT_FAILURE);
 
 	exit(EXIT_SUCCESS);
